@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body>
 <div class="page-shell">
@@ -58,7 +58,10 @@
           <span class="eyebrow dark">Administration</span>
           <h2 id="adminPanelTitle">Manage events</h2>
         </div>
-        <button class="primary-btn" id="adminCreateEvent" type="button">New event</button>
+        <div class="admin-panel-actions">
+          <button class="ghost-btn" id="adminImportToggle" type="button">Import from Ticketmaster</button>
+          <button class="primary-btn" id="adminCreateEvent" type="button">New event</button>
+        </div>
       </div>
 
       <form class="admin-event-form hidden" id="adminEventForm">
@@ -85,18 +88,72 @@
         </div>
       </form>
 
+      <form class="admin-event-form hidden" id="adminImportForm">
+        <h3>Import from Ticketmaster</h3>
+        <div class="admin-form-grid">
+          <label class="admin-field"><span>Keyword (optional)</span><input name="keyword" maxlength="120" placeholder="rock, jazz, Taylor Swift…" /></label>
+          <label class="admin-field"><span>Country code (optional)</span><input name="countryCode" maxlength="2" placeholder="DE" /></label>
+          <label class="admin-field"><span>City (optional)</span><input name="city" maxlength="120" placeholder="Berlin" /></label>
+          <label class="admin-field"><span>Category</span>
+            <select name="classificationName">
+              <option value="">Any</option>
+              <option value="music">Music</option>
+              <option value="sports">Sports</option>
+              <option value="arts &amp; theatre">Arts &amp; Theatre</option>
+              <option value="film">Film</option>
+              <option value="miscellaneous">Miscellaneous</option>
+            </select>
+          </label>
+          <label class="admin-field"><span>Order</span>
+            <select name="sort">
+              <option value="random">Random mix</option>
+              <option value="date,asc">Soonest first</option>
+            </select>
+          </label>
+          <label class="admin-field"><span>Events per page</span><input name="size" type="number" min="1" max="100" step="1" value="20" /></label>
+          <label class="admin-field"><span>Pages</span><input name="pages" type="number" min="1" max="5" step="1" value="1" /></label>
+        </div>
+        <div class="admin-form-footer">
+          <p id="adminImportStatus" role="status" aria-live="polite"></p>
+          <div>
+            <button class="ghost-btn" id="adminImportCancel" type="button">Cancel</button>
+            <button class="primary-btn" id="adminImportSubmit" type="submit">Import events</button>
+          </div>
+        </div>
+      </form>
+
       <div class="admin-event-list" id="adminEventList" aria-live="polite"></div>
+      <div class="ai-usage" id="aiUsage"></div>
     </section>
 
-    <section class="container section-block">
+    <section class="container section-block" id="eventsSection">
       <div class="section-header">
         <div>
           <span class="eyebrow dark">Upcoming</span>
           <h2>Events</h2>
         </div>
       </div>
-      <div class="chips" id="cityChips" aria-label="Filter by city"></div>
       <div class="event-grid"></div>
+      <nav class="event-pagination hidden" id="eventPagination" aria-label="Events pagination"></nav>
+    </section>
+
+    <section class="container section-block" id="aiAssistant">
+      <div class="section-header">
+        <div>
+          <span class="eyebrow dark">AI assistant</span>
+          <h2>Подберём концерт</h2>
+        </div>
+      </div>
+
+      <div class="ai-chat">
+        <p class="ai-chat-hint">Опишите, что хотите: «Хочу на концерт в Берлине» или «что-нибудь из джаза».</p>
+        <div class="ai-chat-messages" id="aiChatMessages" aria-live="polite"></div>
+        <form class="ai-chat-form" id="aiChatForm">
+          <input id="aiChatInput" name="message" type="text" maxlength="500"
+                 placeholder="Хочу на концерт в Берлине" autocomplete="off" required />
+          <button class="primary-btn" id="aiChatSubmit" type="submit">Спросить</button>
+        </form>
+      </div>
     </section>
 
     <section class="container section-block hidden" id="spotlightSection">
@@ -188,6 +245,7 @@
         <h3 id="modalTitle">Event title</h3>
         <p id="modalMeta">Venue • date</p>
         <p id="modalDescription">Event description</p>
+        <a class="modal-source hidden" id="modalSource" target="_blank" rel="noopener noreferrer">Event details on Ticketmaster ↗</a>
       </div>
       <div class="seat-picker-wrapper">
         <div class="seat-picker-header">
@@ -238,6 +296,6 @@
   </div>
 </div>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

@@ -10,8 +10,10 @@ let currentUser = null;
 let adminEvents = [];
 let editingEventId = null;
 let authMode = 'login';
-let activeCity = '';
 let ownedSeats = new Map();
+
+const EVENTS_PER_PAGE = 8;
+let currentPage = 1;
 
 const seatsBeingPaid = new Map();
 
@@ -161,30 +163,6 @@ function getSeatMap(event) {
 
 
 
-function getVisibleEvents() {
-  return activeCity
-      ? allEvents.filter((e) => getCityLabel(e.location) === activeCity)
-      : allEvents;
-}
-
-function renderCityChips() {
-  const container = $('cityChips');
-  if (!container) return;
-
-  const cities = [...new Set(allEvents.map((e) => getCityLabel(e.location)).filter(Boolean))].sort();
-  if (activeCity && !cities.includes(activeCity)) activeCity = '';
-
-  if (cities.length < 2) {
-    container.innerHTML = '';
-    return;
-  }
-
-  container.innerHTML = ['', ...cities].map((city) => `
-    <button type="button" class="chip ${city === activeCity ? 'active' : ''}" data-city="${escapeHtml(city)}">
-      ${city ? escapeHtml(city) : 'All'}
-    </button>`).join('');
-}
-
 function renderEvents(events, emptyMessage = 'Мероприятий пока нет.') {
   const grid = document.querySelector('.event-grid');
   if (!grid) return;
@@ -196,7 +174,7 @@ function renderEvents(events, emptyMessage = 'Мероприятий пока н
 
   grid.innerHTML = events.map((event) => `
     <article class="event-card" data-open-event="${escapeHtml(event.id)}">
-      <div class="event-image ${coverClass(event)}"></div>
+      <div class="event-image ${coverClass(event)}"${event.imageUrl ? ` style="background-image:url('${escapeHtml(event.imageUrl)}')"` : ''}></div>
       <div class="event-body">
         <div class="event-meta-row">
           <span class="date-badge">${escapeHtml(formatDate(event.eventDate))}</span>
@@ -211,6 +189,41 @@ function renderEvents(events, emptyMessage = 'Мероприятий пока н
         <button class="card-buy-btn" type="button">Купить билеты</button>
       </div>
     </article>`).join('');
+}
+
+function paginationItems(current, total) {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1);
+  }
+
+  const items = [1];
+  const start = Math.max(2, current - 2);
+  const end = Math.min(total - 1, current + 2);
+
+  if (start > 2) items.push('…');
+  for (let page = start; page <= end; page++) items.push(page);
+  if (end < total - 1) items.push('…');
+  items.push(total);
+  return items;
+}
+
+function renderPagination(totalPages) {
+  const nav = $('eventPagination');
+  if (!nav) return;
+
+  if (!allEvents.length || totalPages <= 1) {
+    nav.innerHTML = '';
+    nav.classList.add('hidden');
+    return;
+  }
+
+  nav.classList.remove('hidden');
+  nav.innerHTML = `
+    <button type="button" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} aria-label="Previous page">←</button>
+    ${paginationItems(currentPage, totalPages).map((item) => item === '…'
+        ? '<span class="pagination-ellipsis">…</span>'
+        : `<button type="button" data-page="${item}" class="${item === currentPage ? 'active' : ''}" ${item === currentPage ? 'aria-current="page"' : ''}>${item}</button>`).join('')}
+    <button type="button" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} aria-label="Next page">→</button>`;
 }
 
 function sortedByDate(events) {
@@ -263,7 +276,7 @@ function renderUpcoming() {
 
   list.innerHTML = items.map((event) => `
     <article class="small-card" data-open-event="${escapeHtml(event.id)}">
-      <div class="small-thumb ${coverClass(event)}"></div>
+      <div class="small-thumb ${coverClass(event)}"${event.imageUrl ? ` style="background-image:url('${escapeHtml(event.imageUrl)}')"` : ''}></div>
       <div>
         <span>${escapeHtml(formatLongDate(event.eventDate))}</span>
         <h3>${escapeHtml(event.name)}</h3>
@@ -274,8 +287,12 @@ function renderUpcoming() {
 }
 
 function refreshView(emptyMessage) {
-  renderCityChips();
-  renderEvents(getVisibleEvents(), emptyMessage);
+  const totalPages = Math.max(1, Math.ceil(allEvents.length / EVENTS_PER_PAGE));
+  currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+
+  const start = (currentPage - 1) * EVENTS_PER_PAGE;
+  renderEvents(allEvents.slice(start, start + EVENTS_PER_PAGE), emptyMessage);
+  renderPagination(totalPages);
   renderSpotlight();
   renderUpcoming();
 }
@@ -300,12 +317,20 @@ function openEventModal(event) {
   const seatMap = $('seatMap');
   seatMap.innerHTML = '';
 
-  $('modalHero').className = `event-modal-hero ${coverClass(event)}`;
+  const hero = $('modalHero');
+  hero.className = `event-modal-hero ${coverClass(event)}`;
+  hero.style.backgroundImage = event.imageUrl ? `url("${event.imageUrl}")` : '';
   $('modalTitle').textContent = event.name;
   $('modalMeta').textContent = `${event.location} • ${formatLongDate(event.eventDate)}`;
-  $('modalDescription').textContent =
-      `${event.artist || 'Featured artist'} live at ${event.location}. Choose your seat below.`;
+  $('modalDescription').textContent = event.description
+      || `${event.artist || 'Featured artist'} live at ${event.location}. Choose your seat below.`;
   $('modalTag').textContent = event.artist || 'Live';
+
+  const source = $('modalSource');
+  if (source) {
+    source.href = event.sourceUrl || '';
+    source.classList.toggle('hidden', !event.sourceUrl);
+  }
   $('selectedSeatLabel').textContent = selectedLabelFor(event);
   updateBuyButton();
 
@@ -569,6 +594,30 @@ function renderAdminEvents(events) {
       : '<p class="empty-state">No events to manage.</p>';
 }
 
+async function loadAiUsage() {
+  const box = $('aiUsage');
+  if (!box || currentUser?.role !== 'ADMIN') return;
+
+  box.textContent = 'Загружаю статистику AI…';
+  try {
+    const accessToken = await ensureValidAccessToken();
+    const response = await fetch(`${API_BASE}/api/ai/stats`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const stats = await response.json();
+    box.innerHTML = `AI сегодня (UTC <strong>${escapeHtml(stats.dateUtc)}</strong>):
+      <strong>${stats.globalUsed}/${stats.globalLimit}</strong> запросов всего,
+      вы: <strong>${stats.userUsed}/${stats.userLimit}</strong> ·
+      LLM: ${stats.llmCalls} · кэш: ${stats.cacheHits} · fallback: ${stats.fallbacks} ·
+      ошибки: ${stats.errors} · ~<strong>${stats.estimatedNeurons}</strong> neurons ·
+      embeddings: ${stats.embeddingCalls} (~${stats.embeddingNeurons} neurons)`;
+  } catch (error) {
+    box.textContent = 'Статистика AI недоступна.';
+  }
+}
+
 async function loadAdminEvents() {
   if (currentUser?.role !== 'ADMIN') return;
 
@@ -754,8 +803,10 @@ async function loadUserProfile() {
           return;
         }
 
-        await ticketReturnClicked(event, row, seatNumber);
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        const returned = await ticketReturnClicked(event, row, seatNumber);
+        if (returned) {
+          await waitForOrderRemoval(eventId, `${row}${seatNumber}`);
+        }
         await loadUserProfile();
       });
     });
@@ -828,8 +879,33 @@ function removeUserOwnedSeat(eventId, row, seatNumber) {
   if (!seats.size) ownedSeats.delete(key);
 }
 
+async function orderStillExists(eventId, seatLabel) {
+  try {
+    const accessToken = await ensureValidAccessToken();
+    const response = await fetch(`${USER_API_BASE}/api/users/${currentUser.id}/orders`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) return true;
+
+    const orders = await response.json();
+    return orders.some((order) =>
+        String(order.eventId) === String(eventId) && String(order.seatLabel) === String(seatLabel));
+  } catch (error) {
+    return true;
+  }
+}
+
+async function waitForOrderRemoval(eventId, seatLabel, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!(await orderStillExists(eventId, seatLabel))) return true;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  return false;
+}
+
 async function ticketReturnClicked(event, row, seatNumber) {
-  if (!isUserOwnedSeat(event.id, row, seatNumber) || !currentUser?.id) return;
+  if (!isUserOwnedSeat(event.id, row, seatNumber) || !currentUser?.id) return false;
 
   try {
     const accessToken = await ensureValidAccessToken();
@@ -846,9 +922,11 @@ async function ticketReturnClicked(event, row, seatNumber) {
     await loadEvents();
     const refreshed = allEvents.find((e) => String(e.id) === String(event.id));
     if (refreshed && !$('eventModal').classList.contains('hidden')) openEventModal(refreshed);
+    return true;
   } catch (error) {
     console.error('Ticket return failed:', error);
     showPaymentNotification(false, 'Возврат не выполнен', 'Билет не удалось вернуть сейчас.');
+    return false;
   }
 }
 
@@ -1013,6 +1091,7 @@ async function searchEvents(event) {
 
     allEvents = await response.json();
     await hydrateSeatStatusesForEvents(allEvents);
+    currentPage = 1;
     refreshView('Ничего не найдено.');
   } catch (error) {
     console.error('Search failed:', error);
@@ -1028,11 +1107,131 @@ async function loadEvents() {
 
     allEvents = await response.json();
     await hydrateSeatStatusesForEvents(allEvents);
+    currentPage = 1;
     refreshView();
   } catch (error) {
     console.error('Failed to load events:', error);
     allEvents = [];
     refreshView('Не удалось загрузить мероприятия. Проверьте доступность API.');
+  }
+}
+
+/* ---------- AI assistant ---------- */
+
+function appendAiMessage(role, text) {
+  const box = $('aiChatMessages');
+  if (!box) return null;
+
+  const element = document.createElement('div');
+  element.className = `ai-message ${role}`;
+  element.textContent = text;
+  box.appendChild(element);
+  box.scrollTop = box.scrollHeight;
+  return element;
+}
+
+function appendAiAnswer(answer, events) {
+  const box = $('aiChatMessages');
+  if (!box) return;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'ai-message assistant';
+
+  if (answer) {
+    const intro = document.createElement('p');
+    intro.className = 'ai-answer-intro';
+    intro.textContent = answer;
+    bubble.appendChild(intro);
+  }
+
+  if (events.length) {
+    const list = document.createElement('ul');
+    list.className = 'ai-answer-list';
+
+    events.forEach((event) => {
+      const item = document.createElement('li');
+      item.className = 'ai-answer-item';
+      item.dataset.aiEvent = event.id;
+      item.tabIndex = 0;
+
+      const thumb = document.createElement('div');
+      thumb.className = 'ai-answer-thumb';
+      if (event.imageUrl) {
+        thumb.style.backgroundImage = `url("${event.imageUrl}")`;
+      }
+
+      const body = document.createElement('div');
+      body.className = 'ai-answer-body';
+
+      const name = document.createElement('strong');
+      name.textContent = event.name;
+
+      const meta = document.createElement('span');
+      meta.textContent = `${event.location} · ${formatLongDate(event.eventDate)}`;
+
+      const price = document.createElement('span');
+      price.textContent = `от $${Number(event.priceFrom || 0).toFixed(2)}`;
+
+      body.append(name, meta, price);
+      item.append(thumb, body);
+      list.appendChild(item);
+    });
+
+    bubble.appendChild(list);
+  }
+
+  box.appendChild(bubble);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function openEventById(eventId) {
+  let event = allEvents.find((item) => String(item.id) === String(eventId));
+  if (!event) {
+    try {
+      const response = await fetch(`${API_BASE}/api/events`);
+      if (response.ok) {
+        const events = await response.json();
+        event = events.find((item) => String(item.id) === String(eventId));
+      }
+    } catch (error) {
+      console.warn('Could not load event for AI card:', error);
+    }
+  }
+  if (event) openEventModal(event);
+}
+
+async function askAi(message) {
+  const submit = $('aiChatSubmit');
+  appendAiMessage('user', message);
+
+  if (!currentUser) {
+    appendAiMessage('assistant', 'Чтобы пользоваться AI-ассистентом, войдите в аккаунт.');
+    openAuthModal('login');
+    return;
+  }
+
+  const pending = appendAiMessage('assistant', 'Ищу события…');
+  if (submit) submit.disabled = true;
+
+  try {
+    const accessToken = await ensureValidAccessToken();
+    const response = await fetch(`${API_BASE}/api/ai/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ message })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.message || `AI request failed (HTTP ${response.status})`);
+    }
+
+    pending.remove();
+    appendAiAnswer(payload.answer || 'Не удалось сформировать ответ.', payload.events || []);
+  } catch (error) {
+    pending.remove();
+    appendAiMessage('error', error.message || 'Ассистент сейчас недоступен.');
+  } finally {
+    if (submit) submit.disabled = false;
   }
 }
 
@@ -1050,13 +1249,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (found) openEventModal(found);
   });
 
+  document.addEventListener('click', (e) => {
+    const aiCard = e.target.closest('[data-ai-event]');
+    if (aiCard) openEventById(aiCard.dataset.aiEvent);
+  });
 
-  $('cityChips')?.addEventListener('click', (e) => {
-    const chip = e.target.closest('[data-city]');
-    if (!chip) return;
-    activeCity = chip.dataset.city;
-    renderCityChips();
-    renderEvents(getVisibleEvents());
+  $('aiChatForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const input = $('aiChatInput');
+    const message = input.value.trim();
+    if (!message) return;
+    input.value = '';
+    await askAi(message);
+  });
+
+
+  $('eventPagination')?.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-page]');
+    if (!button || button.disabled) return;
+    currentPage = Number(button.dataset.page);
+    refreshView();
+    $('eventsSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
 
@@ -1126,13 +1339,78 @@ document.addEventListener('DOMContentLoaded', () => {
     const opening = adminPanel.classList.contains('hidden');
     adminPanel.classList.toggle('hidden', !opening);
     if (opening) {
-      await loadAdminEvents();
+      await Promise.all([loadAdminEvents(), loadAiUsage()]);
       adminPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   });
 
-  $('adminCreateEvent')?.addEventListener('click', () => openAdminEventForm());
+  $('adminCreateEvent')?.addEventListener('click', () => {
+    $('adminImportForm')?.classList.add('hidden');
+    openAdminEventForm();
+  });
   $('adminCancelEdit')?.addEventListener('click', closeAdminEventForm);
+
+  $('adminImportToggle')?.addEventListener('click', () => {
+    const form = $('adminImportForm');
+    if (!form) return;
+    const opening = form.classList.contains('hidden');
+    form.classList.toggle('hidden', !opening);
+    if (opening) {
+      closeAdminEventForm();
+      const status = $('adminImportStatus');
+      if (status) status.textContent = '';
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+
+  $('adminImportCancel')?.addEventListener('click', () => $('adminImportForm')?.classList.add('hidden'));
+
+  $('adminImportForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submit = $('adminImportSubmit');
+    const status = $('adminImportStatus');
+    const params = new URLSearchParams();
+
+    const keyword = form.elements.namedItem('keyword').value.trim();
+    const countryCode = form.elements.namedItem('countryCode').value.trim().toUpperCase();
+    const city = form.elements.namedItem('city').value.trim();
+    const classificationName = form.elements.namedItem('classificationName').value.trim();
+    const sort = form.elements.namedItem('sort').value;
+    const size = Number(form.elements.namedItem('size').value) || 20;
+    const pages = Number(form.elements.namedItem('pages').value) || 1;
+
+    if (keyword) params.set('keyword', keyword);
+    if (countryCode) params.set('countryCode', countryCode);
+    if (city) params.set('city', city);
+    if (classificationName) params.set('classificationName', classificationName);
+    if (sort) params.set('sort', sort);
+    params.set('size', size);
+    params.set('pages', pages);
+
+    submit.disabled = true;
+    status.classList.remove('error');
+    status.textContent = 'Importing events from Ticketmaster…';
+
+    try {
+      const accessToken = await ensureValidAccessToken();
+      const response = await fetch(`${API_BASE}/api/events/import/ticketmaster?${params.toString()}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.message || `Import failed (HTTP ${response.status})`);
+
+      status.textContent = `Imported ${payload.imported} of ${payload.fetched} events. `
+          + `Already imported: ${payload.skippedExisting}, skipped without confirmed date: ${payload.skippedInvalid}.`;
+      await Promise.all([loadEvents(), loadAdminEvents()]);
+    } catch (error) {
+      status.textContent = error.message || 'Could not import events.';
+      status.classList.add('error');
+    } finally {
+      submit.disabled = false;
+    }
+  });
   $('adminSeatConfig')?.addEventListener('input', updateSeatSummary);
   updateSeatSummary();
 
@@ -1203,6 +1481,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (value.length > 2) value = `${value.slice(0, 2)}/${value.slice(2)}`;
     event.target.value = value;
   });
+
+  const modals = document.querySelectorAll('.modal');
+  const modalObserver = new MutationObserver(() => {
+    const anyOpen = [...modals].some((modal) => !modal.classList.contains('hidden'));
+    document.body.classList.toggle('modal-open', anyOpen);
+  });
+  modals.forEach((modal) => modalObserver.observe(modal, { attributes: true, attributeFilter: ['class'] }));
 
   loadOwnedSeats();
   loadEvents();
