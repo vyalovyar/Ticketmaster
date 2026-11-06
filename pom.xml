@@ -37,6 +37,7 @@
         <module>common-library</module>
         <module>gateway-service</module>
         <module>event-service</module>
+        <module>ai-service</module>
         <module>booking-service</module>
         <module>payment-service</module>
         <module>user-service</module>

@@ -22,6 +22,11 @@ spring:
           predicates:
             - Path=/api/events/**
 
+        - id: ai-service
+          uri: "${AI_SERVICE_URL:http://localhost:8086}"
+          predicates:
+            - Path=/api/ai/**
+
         - id: booking-service
           uri: "${BOOKING_SERVICE_URL:http://localhost:8082}"
           predicates:

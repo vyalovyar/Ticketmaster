@@ -1,4 +1,4 @@
-# TicketMaster (PulsePass)
+# TicketMaster 
 
 Учебный проект: сервис продажи билетов на концерты, собранный из нескольких микросервисов на Spring Boot. Я делал его не ради самого сервиса, а чтобы на живом примере потрогать то, что обычно остаётся в теории: Kafka между сервисами, распределённые блокировки в Redis, JWT на уровне шлюза, компенсирующие события при возврате билета.
 
@@ -45,6 +45,7 @@ flowchart LR
 | payment-service | 8083 | Имитация оплаты, слушает брони, отвечает результатом в Kafka |
 | user-service | 8084 | Пользователи, токены, история заказов, роли, аудит |
 | analytics-service | 8085 | Счётчики по событиям из Kafka |
+| ai-service | 8086 | RAG-ассистент: retrieval по каталогу, ответ LLM, карточки событий |
 | common-library | - | Общие DTO, `BusinessException`, `JwtValidator`, `Role` |
 
 ### Как проходит покупка
@@ -72,7 +73,7 @@ flowchart LR
 
 - Java 21, Spring Boot 3.2.4, Maven (multi-module)
 - Spring Cloud Gateway (WebFlux), reactive Redis для rate limit
-- Spring Data JPA / Hibernate, PostgreSQL 16
+- Spring Data JPA / Hibernate, PostgreSQL 16 + pgvector
 - Apache Kafka (spring-kafka), Kafdrop для просмотра топиков
 - Redis 7: блокировки мест и счётчик запросов на шлюзе
 - Spring Security, JWT на jjwt 0.11.5, HS256
