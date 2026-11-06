@@ -1,0 +1,56 @@
+server:
+  port: 8086
+
+spring:
+  config:
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:../.env[.properties]
+  application:
+    name: ai-service
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:ticketing_db}
+    username: ${POSTGRES_USER:admin}
+    password: ${POSTGRES_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ai-service-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+app:
+  ai:
+    provider: ${AI_PROVIDER:yandex}
+    base-url: ${AI_BASE_URL:}
+    api-key: ${AI_API_KEY:}
+    project-id: ${AI_PROJECT_ID:}
+    chat-model: ${AI_CHAT_MODEL:}
+    intent-model: ${AI_INTENT_MODEL:}
+    auth-scheme: ${AI_AUTH_SCHEME:}
+    temperature: ${AI_TEMPERATURE:0.2}
+    max-tokens: ${AI_MAX_TOKENS:500}
+    top-k: ${AI_TOP_K:6}
+    json-mode: ${AI_JSON_MODE:true}
+    embedding:
+      provider: ${AI_PROVIDER:yandex}
+      enabled: ${AI_EMBEDDING_ENABLED:true}
+      model: ${AI_EMBEDDING_MODEL:}
+      dimension: ${AI_EMBEDDING_DIMENSION:0}
+      refresh-minutes: ${AI_EMBEDDING_REFRESH_MINUTES:10}
+      batch-size: ${AI_EMBEDDING_BATCH_SIZE:20}
+      weight: ${AI_EMBEDDING_WEIGHT:0.7}
+    daily-global-limit: ${AI_DAILY_GLOBAL_LIMIT:50}
+    daily-user-limit: ${AI_DAILY_USER_LIMIT:10}
+    cache-ttl-minutes: ${AI_CACHE_TTL_MINUTES:10}
+  index:
+    initial-delay-ms: 15000
+    sync-ms: 300000
+  event-service:
+    base-url: ${EVENT_SERVICE_URL:http://localhost:8081}

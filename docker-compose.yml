@@ -11,7 +11,7 @@ volumes:
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: ticket-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ticketing_db}

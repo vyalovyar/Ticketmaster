@@ -56,9 +56,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             new Rule(Set.of(HttpMethod.GET), "/ping", Access.PUBLIC),
             new Rule(Set.of(HttpMethod.GET), "/api/events/**", Access.PUBLIC),
             new Rule(Set.of(HttpMethod.GET), "/api/bookings/events/*/seat-status", Access.PUBLIC),
+            new Rule(Set.of(HttpMethod.POST), "/api/ai/chat", Access.AUTHENTICATED),
+            new Rule(Set.of(HttpMethod.GET), "/api/ai/search", Access.PUBLIC),
+            new Rule(Set.of(HttpMethod.GET), "/api/ai/health", Access.PUBLIC),
 
 
-            new Rule(Set.of(), "/api/events/**", Access.ADMIN),          // POST / PUT / DELETE
+            new Rule(Set.of(HttpMethod.GET), "/api/ai/stats", Access.ADMIN),
+            new Rule(Set.of(), "/api/events/**", Access.ADMIN),
             new Rule(Set.of(), "/api/analytics/**", Access.ADMIN),
             new Rule(Set.of(HttpMethod.PUT), "/api/users/*/role", Access.ADMIN)
     );
