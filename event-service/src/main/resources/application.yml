@@ -4,8 +4,15 @@ server:
 app:
   demo-data:
     enabled: ${DEMO_DATA_ENABLED:true}
+  ticketmaster:
+    api-key: ${TICKETMASTER_API_KEY:}
+    base-url: ${TICKETMASTER_BASE_URL:https://app.ticketmaster.com}
 
 spring:
+  config:
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:../.env[.properties]
   application:
     name: event-service
   datasource:

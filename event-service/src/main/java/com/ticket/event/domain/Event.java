@@ -3,6 +3,7 @@ package com.ticket.event.domain;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +25,32 @@ public class Event {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "external_id", unique = true, length = 64)
+    private String externalId;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
+    @Column(name = "source_url", length = 500)
+    private String sourceUrl;
+
+    @Column(name = "country_code", length = 2)
+    private String countryCode;
+
+    @Column(length = 120)
+    private String city;
+
+    @Column(name = "venue_name", length = 200)
+    private String venueName;
+
+    @ElementCollection
+    @CollectionTable(name = "event_genres", joinColumns = @JoinColumn(name = "event_id"))
+    @Column(name = "genre", length = 80)
+    private List<String> genres = new ArrayList<>();
+
     @ElementCollection
     @CollectionTable(name= "event_seats", joinColumns = @JoinColumn(name = "event_id"))
     private List<Seat> seats;
@@ -31,10 +58,15 @@ public class Event {
     protected Event() {}
 
     public static Event create(String name, String location, LocalDateTime eventDate, List<Seat> seats) {
-        return create(name, null, location, eventDate, seats);
+        return create(name, null, location, eventDate, seats, null);
     }
 
-    public static Event create(String name, String artist, String location, LocalDateTime eventDate, List<Seat> seats){
+    public static Event create(String name, String artist, String location, LocalDateTime eventDate, List<Seat> seats) {
+        return create(name, artist, location, eventDate, seats, null);
+    }
+
+    public static Event create(String name, String artist, String location, LocalDateTime eventDate,
+                               List<Seat> seats, String externalId) {
         if (eventDate.isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Нельзя создать мероприятие в прошлом");
         }
@@ -49,7 +81,40 @@ public class Event {
         event.location = location;
         event.eventDate = eventDate;
         event.seats = seats;
+        event.externalId = externalId;
         return event;
+    }
+
+    public static Event createImported(String name, String artist, String location, LocalDateTime eventDate,
+                                       String description, String imageUrl, String sourceUrl,
+                                       String countryCode, String city, String venueName, List<String> genres,
+                                       List<Seat> seats, String externalId) {
+        Event event = create(name, artist, location, eventDate, seats, externalId);
+        event.description = description;
+        event.imageUrl = imageUrl;
+        event.sourceUrl = sourceUrl;
+        event.countryCode = countryCode;
+        event.city = city;
+        event.venueName = venueName;
+        event.genres = genres == null ? new ArrayList<>() : new ArrayList<>(genres);
+        return event;
+    }
+
+    public void updateImportedMetadata(String artist, String location, String description, String imageUrl,
+                                       String sourceUrl, String countryCode, String city, String venueName,
+                                       List<String> genres) {
+        this.artist = artist;
+        this.location = location;
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.sourceUrl = sourceUrl;
+        this.countryCode = countryCode;
+        this.city = city;
+        this.venueName = venueName;
+        this.genres.clear();
+        if (genres != null) {
+            this.genres.addAll(genres);
+        }
     }
 
     public void delete(){
@@ -105,6 +170,38 @@ public class Event {
     }
     public LocalDateTime getDeletedAt(){
         return deletedAt;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public String getSourceUrl() {
+        return sourceUrl;
+    }
+
+    public String getCountryCode() {
+        return countryCode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public String getVenueName() {
+        return venueName;
+    }
+
+    public List<String> getGenres() {
+        return genres;
     }
 
 }
