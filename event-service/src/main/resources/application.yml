@@ -7,6 +7,17 @@ app:
   ticketmaster:
     api-key: ${TICKETMASTER_API_KEY:}
     base-url: ${TICKETMASTER_BASE_URL:https://app.ticketmaster.com}
+    auto-import:
+      enabled: ${TICKETMASTER_AUTO_IMPORT_ENABLED:true}
+      startup-import: ${TICKETMASTER_AUTO_IMPORT_ON_STARTUP:true}
+      cron: ${TICKETMASTER_AUTO_IMPORT_CRON:0 0 3 * * *}
+      keyword: ${TICKETMASTER_AUTO_IMPORT_KEYWORD:}
+      country-code: ${TICKETMASTER_AUTO_IMPORT_COUNTRY:}
+      city: ${TICKETMASTER_AUTO_IMPORT_CITY:}
+      classification-name: ${TICKETMASTER_AUTO_IMPORT_CLASSIFICATION:music}
+      sort: ${TICKETMASTER_AUTO_IMPORT_SORT:date,asc}
+      size: ${TICKETMASTER_AUTO_IMPORT_SIZE:50}
+      pages: ${TICKETMASTER_AUTO_IMPORT_PAGES:2}
 
 spring:
   config:
@@ -16,19 +27,19 @@ spring:
   application:
     name: event-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB:ticketing_db}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:ticketing_db}
     username: ${POSTGRES_USER:admin}
-    password: ${POSTGRES_PASSWORD:admin}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${JPA_FORMAT_SQL:false}
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer

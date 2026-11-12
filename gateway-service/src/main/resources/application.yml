@@ -1,5 +1,6 @@
 server:
   port: 8080
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:native}
 
 spring:
   config:
@@ -11,8 +12,8 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
   cloud:
     gateway:
@@ -55,7 +56,7 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "*"
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGINS:*}
             allowedMethods:
               - GET
               - POST
