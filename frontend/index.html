@@ -1,263 +1,455 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PulsePass | Live Events</title>
-  <meta name="description" content="Find and book tickets to live events with PulsePass." />
+  <title>PulsePass — билеты на концерты</title>
+  <meta name="description" content="PulsePass — поиск и покупка билетов на живые события." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=9" />
 </head>
 <body>
-<div class="page-shell">
-  <header class="topbar">
-    <div class="container nav-wrap">
-      <div class="brand-block">
-        <div class="brand-mark">P</div>
-        <span>PulsePass</span>
+<header class="topbar">
+  <div class="container nav-wrap">
+    <a class="brand-block" href="#" id="brandHome">
+      <div class="brand-mark">P</div><span>PulsePass</span>
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#eventsSection" data-i18n="nav.events"></a>
+      <a href="#howSection" data-i18n="nav.how"></a>
+      <a href="#aiAssistant" data-i18n="nav.ai"></a>
+      <a href="#faqSection" data-i18n="nav.faq"></a>
+    </nav>
+    <button class="ghost-btn back-btn hidden" id="dashBackBtn" type="button" data-i18n="dash.back"></button>
+    <div class="nav-actions">
+      <div class="lang-toggle" id="langToggle" role="group" aria-label="Language">
+        <button type="button" id="langRu">RU</button>
+        <button type="button" id="langEn">EN</button>
       </div>
-      <div class="nav-actions">
-        <button class="ghost-btn hidden" id="adminPanelToggle" type="button">Manage events</button>
-        <button class="ghost-btn" id="authToggleBtn" type="button">Sign in</button>
-      </div>
+      <button class="ghost-btn" id="authToggleBtn" type="button" data-i18n="nav.signin"></button>
     </div>
-  </header>
+  </div>
+</header>
 
+<div id="landingView">
   <main>
     <section class="hero">
-      <div class="container hero-content">
-        <div class="hero-copy">
-          <span class="eyebrow">Live events</span>
-          <h1>Find your next unforgettable night.</h1>
-          <p>Search upcoming events, pick your seat and book in a few clicks.</p>
+      <div class="container hero-copy">
+        <span class="hero-kicker" data-i18n="hero.eyebrow"></span>
+        <h1 data-i18n="hero.title"></h1>
+        <p class="hero-sub" data-i18n="hero.subtitle"></p>
+        <form class="search-panel" id="searchForm" aria-label="Event search" autocomplete="off">
+          <div class="field">
+            <label for="artistFilter" data-i18n="search.artist"></label>
+            <input id="artistFilter" type="text" autocomplete="off" data-i18n-ph="search.artistPh" />
+          </div>
+          <div class="field">
+            <label for="locationFilter" data-i18n="search.location"></label>
+            <input id="locationFilter" type="text" autocomplete="off" data-i18n-ph="search.locationPh" />
+          </div>
+          <div class="field">
+            <label for="dateFilter" data-i18n="search.date"></label>
+            <!-- v17: кастомный календарь; нативный input скрыт, но сохраняет id и ISO-значение для поиска -->
+            <div class="datefield" id="dateField">
+              <button type="button" class="datefield-btn empty" id="dateBtn" aria-haspopup="dialog" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                <span id="dateLabel" data-i18n="search.anyDate"></span>
+              </button>
+              <button type="button" class="datefield-clear hidden" id="dateClear" data-i18n-aria="cal.clearDate" aria-label="Clear date">×</button>
+              <input id="dateFilter" type="date" class="datefield-native" autocomplete="off" tabindex="-1" aria-hidden="true" />
+              <div class="datecalendar hidden" id="dateCalendar"></div>
+            </div>
+          </div>
+          <button type="submit" class="search-btn" data-i18n="search.submit"></button>
+        </form>
+      </div>
+      <div class="marquee hidden" id="marqueeBox" aria-hidden="true">
+        <div class="marquee-track" id="marqueeTrack"></div>
+      </div>
+    </section>
 
-          <form class="search-panel" id="searchForm" aria-label="Event search form">
-            <div class="field">
-              <label for="artistFilter">Artist</label>
-              <input id="artistFilter" type="text" placeholder="Search artist" />
-            </div>
-            <div class="field">
-              <label for="locationFilter">Location</label>
-              <input id="locationFilter" type="text" placeholder="City or venue" />
-            </div>
-            <div class="field">
-              <label for="dateFilter">Date</label>
-              <input id="dateFilter" type="date" />
-            </div>
-            <button type="submit" class="search-btn">Search</button>
-          </form>
+    <section class="container stats-strip reveal" id="statsStrip">
+      <div class="stat"><strong id="statEvents">0</strong><span data-i18n="stats.events"></span></div>
+      <div class="stat"><strong id="statCities">0</strong><span data-i18n="stats.cities"></span></div>
+      <div class="stat"><strong id="statSeats">0</strong><span data-i18n="stats.seats"></span></div>
+    </section>
+
+    <section class="container section-block reveal hidden" id="spotlightSection">
+      <div class="countdown-banner" id="spotlight">
+        <div class="countdown-copy">
+          <h2 id="spotName">—</h2>
+          <p id="spotMeta">—</p>
+          <div class="spotlight-actions">
+            <button class="primary-btn" type="button" id="spotCta" data-open-event="" data-i18n="next.choose"></button>
+          </div>
+        </div>
+        <div class="countdown-grid">
+          <div class="cd-cell"><strong id="cdDays">00</strong><span data-i18n="next.days"></span></div>
+          <div class="cd-cell"><strong id="cdHours">00</strong><span data-i18n="next.hours"></span></div>
+          <div class="cd-cell"><strong id="cdMins">00</strong><span data-i18n="next.minutes"></span></div>
+          <div class="cd-cell"><strong id="cdSecs">00</strong><span data-i18n="next.seconds"></span></div>
         </div>
       </div>
     </section>
 
-    <section class="container admin-panel hidden" id="adminPanel" aria-labelledby="adminPanelTitle">
-      <div class="admin-panel-heading">
-        <div>
-          <span class="eyebrow dark">Administration</span>
-          <h2 id="adminPanelTitle">Manage events</h2>
-        </div>
-        <div class="admin-panel-actions">
-          <button class="ghost-btn" id="adminImportToggle" type="button">Import from Ticketmaster</button>
-          <button class="primary-btn" id="adminCreateEvent" type="button">New event</button>
-        </div>
+    <section class="container section-block reveal" id="eventsSection">
+      <div class="section-header"><h2 data-i18n="events.title"></h2></div>
+      <div class="chips" id="filterChips">
+        <button class="chip active" type="button" data-filter="all" data-i18n="filter.all"></button>
+        <button class="chip" type="button" data-filter="soonest" data-i18n="filter.soonest"></button>
+        <button class="chip" type="button" data-filter="cheapest" data-i18n="filter.cheapest"></button>
+        <button class="chip" type="button" data-filter="weekend" data-i18n="filter.weekend"></button>
       </div>
-
-      <form class="admin-event-form hidden" id="adminEventForm">
-        <h3 id="adminFormTitle">New event</h3>
-        <div class="admin-form-grid">
-          <label class="admin-field"><span>Event name</span><input name="name" maxlength="120" required /></label>
-          <label class="admin-field"><span>Artist</span><input name="artist" maxlength="120" required /></label>
-          <label class="admin-field"><span>Venue and location</span><input name="location" maxlength="200" required /></label>
-          <label class="admin-field"><span>Date and time</span><input name="eventDate" type="datetime-local" required /></label>
-          <div class="admin-seat-config" id="adminSeatConfig">
-            <label class="admin-field"><span>Rows (A, B … AA)</span><input name="seatRows" type="number" min="1" max="500" step="1" value="5" required /></label>
-            <label class="admin-field"><span>Seats per row</span><input name="seatsPerRow" type="number" min="1" max="500" step="1" value="10" required /></label>
-            <label class="admin-field"><span>Price, row A</span><input name="seatPrice" type="number" min="0.01" step="0.01" value="55" required /></label>
-            <label class="admin-field"><span>Price step per row</span><input name="rowPriceStep" type="number" min="0" step="0.01" value="0" required /></label>
-            <p class="admin-seat-summary" id="adminSeatSummary"></p>
-          </div>
-        </div>
-        <div class="admin-form-footer">
-          <p id="adminFormStatus" role="status" aria-live="polite"></p>
-          <div>
-            <button class="ghost-btn" id="adminCancelEdit" type="button">Cancel</button>
-            <button class="primary-btn" id="adminSaveEvent" type="submit">Create event</button>
-          </div>
-        </div>
-      </form>
-
-      <form class="admin-event-form hidden" id="adminImportForm">
-        <h3>Import from Ticketmaster</h3>
-        <div class="admin-form-grid">
-          <label class="admin-field"><span>Keyword (optional)</span><input name="keyword" maxlength="120" placeholder="rock, jazz, Taylor Swift…" /></label>
-          <label class="admin-field"><span>Country code (optional)</span><input name="countryCode" maxlength="2" placeholder="DE" /></label>
-          <label class="admin-field"><span>City (optional)</span><input name="city" maxlength="120" placeholder="Berlin" /></label>
-          <label class="admin-field"><span>Category</span>
-            <select name="classificationName">
-              <option value="">Any</option>
-              <option value="music">Music</option>
-              <option value="sports">Sports</option>
-              <option value="arts &amp; theatre">Arts &amp; Theatre</option>
-              <option value="film">Film</option>
-              <option value="miscellaneous">Miscellaneous</option>
-            </select>
-          </label>
-          <label class="admin-field"><span>Order</span>
-            <select name="sort">
-              <option value="random">Random mix</option>
-              <option value="date,asc">Soonest first</option>
-            </select>
-          </label>
-          <label class="admin-field"><span>Events per page</span><input name="size" type="number" min="1" max="100" step="1" value="20" /></label>
-          <label class="admin-field"><span>Pages</span><input name="pages" type="number" min="1" max="5" step="1" value="1" /></label>
-        </div>
-        <div class="admin-form-footer">
-          <p id="adminImportStatus" role="status" aria-live="polite"></p>
-          <div>
-            <button class="ghost-btn" id="adminImportCancel" type="button">Cancel</button>
-            <button class="primary-btn" id="adminImportSubmit" type="submit">Import events</button>
-          </div>
-        </div>
-      </form>
-
-      <div class="admin-event-list" id="adminEventList" aria-live="polite"></div>
-      <div class="ai-usage" id="aiUsage"></div>
-    </section>
-
-    <section class="container section-block" id="eventsSection">
-      <div class="section-header">
-        <div>
-          <span class="eyebrow dark">Upcoming</span>
-          <h2>Events</h2>
-        </div>
-      </div>
-      <div class="event-grid"></div>
+      <div class="event-grid" id="eventGrid"></div>
       <nav class="event-pagination hidden" id="eventPagination" aria-label="Events pagination"></nav>
     </section>
 
-    <section class="container section-block" id="aiAssistant">
-      <div class="section-header">
-        <div>
-          <span class="eyebrow dark">AI assistant</span>
-          <h2>Подберём концерт</h2>
+    <section class="container section-block reveal" id="howSection">
+      <div class="section-header"><h2 data-i18n="how.title"></h2></div>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+          <span class="step-num">01</span>
+          <h3 data-i18n="how.s1t"></h3><p data-i18n="how.s1d"></p>
+        </div>
+        <div class="step-card">
+          <div class="step-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M9 5v14"/></svg></div>
+          <span class="step-num">02</span>
+          <h3 data-i18n="how.s2t"></h3><p data-i18n="how.s2d"></p>
+        </div>
+        <div class="step-card">
+          <div class="step-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a8 8 0 0 1 16 0v3l2 3-2 2v2a2 2 0 0 1-2 2h-2v2H8v-2H6a2 2 0 0 1-2-2v-2l-2-2 2-3z"/></svg></div>
+          <span class="step-num">03</span>
+          <h3 data-i18n="how.s3t"></h3><p data-i18n="how.s3d"></p>
         </div>
       </div>
+    </section>
 
+    <section class="container section-block reveal" id="aiAssistant">
+      <div class="section-header"><h2 data-i18n="ai.title"></h2></div>
       <div class="ai-chat">
-        <p class="ai-chat-hint">Опишите, что хотите: «Хочу на концерт в Берлине» или «что-нибудь из джаза».</p>
+        <div class="ai-chat-head">
+          <div class="ai-avatar" aria-hidden="true">AI</div>
+          <p class="ai-chat-hint" data-i18n="ai.hint"></p>
+        </div>
         <div class="ai-chat-messages" id="aiChatMessages" aria-live="polite"></div>
+        <div class="ai-examples" id="aiExamples">
+          <button type="button" data-ai-ex="ai.ex1" data-i18n="ai.ex1"></button>
+          <button type="button" data-ai-ex="ai.ex2" data-i18n="ai.ex2"></button>
+          <button type="button" data-ai-ex="ai.ex3" data-i18n="ai.ex3"></button>
+        </div>
         <form class="ai-chat-form" id="aiChatForm">
-          <input id="aiChatInput" name="message" type="text" maxlength="500"
-                 placeholder="Хочу на концерт в Берлине" autocomplete="off" required />
-          <button class="primary-btn" id="aiChatSubmit" type="submit">Спросить</button>
+          <input id="aiChatInput" name="message" type="text" maxlength="500" data-i18n-ph="ai.placeholder" autocomplete="off" required />
+          <button class="primary-btn" id="aiChatSubmit" type="submit" data-i18n="ai.ask"></button>
         </form>
       </div>
     </section>
 
-    <section class="container section-block hidden" id="spotlightSection">
-      <div class="spotlight-banner" id="spotlight"></div>
+    <section class="container section-block reveal hidden" id="upcomingSection">
+      <div class="section-header"><h2 data-i18n="events.upcoming"></h2></div>
+      <div class="small-cards" id="upcoming"></div>
     </section>
 
-    <section class="container section-block hidden" id="upcomingSection">
-      <div class="section-header">
-        <div>
-          <span class="eyebrow dark">Coming soon</span>
-          <h2>Next up</h2>
+    <section class="container section-block reveal" id="faqSection">
+      <div class="section-header"><h2 data-i18n="faq.title"></h2></div>
+      <div class="faq-list">
+        <div class="faq-item"><button class="faq-q" type="button"><span data-i18n="q1"></span><span class="faq-ico" aria-hidden="true">+</span></button><div class="faq-a"><p data-i18n="a1"></p></div></div>
+        <div class="faq-item"><button class="faq-q" type="button"><span data-i18n="q2"></span><span class="faq-ico" aria-hidden="true">+</span></button><div class="faq-a"><p data-i18n="a2"></p></div></div>
+        <div class="faq-item"><button class="faq-q" type="button"><span data-i18n="q3"></span><span class="faq-ico" aria-hidden="true">+</span></button><div class="faq-a"><p data-i18n="a3"></p></div></div>
+        <div class="faq-item"><button class="faq-q" type="button"><span data-i18n="q4"></span><span class="faq-ico" aria-hidden="true">+</span></button><div class="faq-a"><p data-i18n="a4"></p></div></div>
+        <div class="faq-item"><button class="faq-q" type="button"><span data-i18n="q5"></span><span class="faq-ico" aria-hidden="true">+</span></button><div class="faq-a"><p data-i18n="a5"></p></div></div>
+      </div>
+    </section>
+
+    <section class="container section-block reveal" id="ctaSection">
+      <div class="cta-banner">
+        <h2 data-i18n="cta.title"></h2>
+        <p data-i18n="cta.text"></p>
+        <div class="cta-actions">
+          <button class="primary-btn" type="button" id="ctaSignup" data-i18n="cta.signup"></button>
+          <a class="ghost-btn light" href="#eventsSection" data-i18n="cta.browse"></a>
         </div>
       </div>
-      <div class="small-cards" id="upcoming"></div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <div class="container">
-      <div class="brand-block footer-brand">
-        <div class="brand-mark">P</div>
-        <span>PulsePass</span>
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="brand-block"><div class="brand-mark">P</div><span>PulsePass</span></div>
+        <p data-i18n="footer.tagline"></p>
       </div>
-      <p>Live experiences and simple ticketing.</p>
+      <nav class="footer-col">
+        <h4 data-i18n="footer.explore"></h4>
+        <a href="#eventsSection" data-i18n="nav.events"></a>
+        <a href="#aiAssistant" data-i18n="nav.ai"></a>
+        <a href="#faqSection" data-i18n="nav.faq"></a>
+      </nav>
+    </div>
+    <div class="container footer-bottom">
+      <p data-i18n="footer.rights"></p>
     </div>
   </footer>
-</div>
+</div><!-- /landingView -->
 
+<section class="dashboard-view hidden" id="dashboardView" aria-label="Dashboard">
+  <div class="container dash-wrap">
+    <h1 class="dash-title" data-i18n="dash.hello"></h1>
+    <div class="dash-layout">
+
+      <aside class="dash-profile-card" id="dashProfileCard">
+        <div class="pc-skeleton" id="pcSkeleton">
+          <div class="sk sk-avatar"></div>
+          <div class="sk sk-line" style="width:62%"></div>
+          <div class="sk sk-line" style="width:85%"></div>
+          <div class="sk sk-line" style="width:45%"></div>
+        </div>
+        <div class="state-error hidden" id="pcError">
+          <p data-i18n="dash.profileErr"></p>
+          <button class="ghost-btn btn-sm" id="dashProfileRetry" type="button" data-i18n="dash.retry"></button>
+        </div>
+        <div class="pc-content hidden" id="pcContent">
+          <div class="pc-top">
+            <div class="pc-avatar" id="dashAvatarBox">
+              <img id="dashAvatarImg" class="hidden" alt="" />
+              <span id="dashAvatarInitials"></span>
+            </div>
+            <div class="avatar-actions">
+              <button type="button" class="text-btn" id="avatarChangeBtn" data-i18n="dash.changePhoto"></button>
+              <button type="button" class="text-btn subtle hidden" id="avatarRemoveBtn" data-i18n="dash.removePhoto"></button>
+            </div>
+            <input type="file" id="avatarUploadInput" class="hidden" accept="image/png,image/jpeg,image/webp" />
+          </div>
+          <h2 class="pc-name" id="dashName">—</h2>
+          <p class="pc-meta" id="dashMeta">—</p>
+          <span class="role-badge hidden" id="dashRoleBadge" data-i18n="dash.adminBadge"></span>
+          <button type="button" class="ghost-btn pc-logout" id="dashLogout" data-i18n="dash.logout"></button>
+        </div>
+      </aside>
+
+      <div class="dash-main">
+        <div class="dash-stats" id="dashStats">
+          <div class="dash-stat"><strong id="dashStatTickets">0</strong><span data-i18n="dash.statTickets"></span></div>
+          <div class="dash-stat"><strong id="dashStatUpcoming">0</strong><span data-i18n="dash.statUpcoming"></span></div>
+          <div class="dash-stat"><strong id="dashStatSpent">$0</strong><span data-i18n="dash.statSpent"></span></div>
+        </div>
+
+        <div class="dash-tickets">
+          <div class="dash-tickets-head">
+            <h3 data-i18n="dash.tickets"></h3>
+            <div class="dash-tabs" role="tablist">
+              <button class="dash-tab active" type="button" data-dash-tab="upcoming"><span data-i18n="dash.upcoming"></span><span class="dash-tab-count" id="tabCountUpcoming">0</span></button>
+              <button class="dash-tab" type="button" data-dash-tab="past"><span data-i18n="dash.past"></span><span class="dash-tab-count" id="tabCountPast">0</span></button>
+            </div>
+          </div>
+
+          <div class="ticket-list" id="ordersSkeleton">
+            <div class="ticket-card sk-ticket"><div class="sk sk-thumb"></div><div class="tk-info"><div class="sk sk-line" style="width:70%"></div><div class="sk sk-line" style="width:50%"></div><div class="sk sk-line" style="width:35%"></div></div><div class="tk-stub"><div class="sk sk-line" style="width:70px"></div><div class="sk sk-line" style="width:56px"></div></div></div>
+            <div class="ticket-card sk-ticket"><div class="sk sk-thumb"></div><div class="tk-info"><div class="sk sk-line" style="width:60%"></div><div class="sk sk-line" style="width:45%"></div><div class="sk sk-line" style="width:30%"></div></div><div class="tk-stub"><div class="sk sk-line" style="width:70px"></div><div class="sk sk-line" style="width:56px"></div></div></div>
+            <div class="ticket-card sk-ticket"><div class="sk sk-thumb"></div><div class="tk-info"><div class="sk sk-line" style="width:75%"></div><div class="sk sk-line" style="width:55%"></div><div class="sk sk-line" style="width:40%"></div></div><div class="tk-stub"><div class="sk sk-line" style="width:70px"></div><div class="sk sk-line" style="width:56px"></div></div></div>
+          </div>
+
+          <div class="state-error hidden" id="ordersError">
+            <p data-i18n="dash.ordersErr"></p>
+            <button class="ghost-btn btn-sm" id="dashOrdersRetry" type="button" data-i18n="dash.retry"></button>
+          </div>
+
+          <div class="ticket-list hidden" id="dashUpcomingList"></div>
+          <div class="ticket-list hidden" id="dashPastList"></div>
+        </div>
+
+        <div class="dash-admin hidden" id="adminPanel" aria-labelledby="adminPanelTitle">
+          <div class="admin-panel-heading">
+            <h2 id="adminPanelTitle" data-i18n="admin.manage"></h2>
+            <div class="admin-panel-actions">
+              <button class="ghost-btn" id="adminImportToggle" type="button" data-i18n="admin.import"></button>
+              <button class="primary-btn" id="adminCreateEvent" type="button" data-i18n="admin.new"></button>
+            </div>
+          </div>
+
+          <form class="admin-event-form hidden" id="adminEventForm">
+            <h3 id="adminFormTitle" data-i18n="admin.new"></h3>
+            <div class="admin-form-grid">
+              <label class="admin-field"><span data-i18n="admin.name"></span><input name="name" maxlength="120" required /></label>
+              <label class="admin-field"><span data-i18n="admin.artist"></span><input name="artist" maxlength="120" required /></label>
+              <label class="admin-field"><span data-i18n="admin.location"></span><input name="location" maxlength="200" required /></label>
+              <label class="admin-field"><span data-i18n="admin.datetime"></span><input name="eventDate" type="datetime-local" required /></label>
+              <div class="admin-seat-config" id="adminSeatConfig">
+                <label class="admin-field"><span data-i18n="admin.rows"></span><input name="seatRows" type="number" min="1" max="500" step="1" value="5" required /></label>
+                <label class="admin-field"><span data-i18n="admin.perRow"></span><input name="seatsPerRow" type="number" min="1" max="500" step="1" value="10" required /></label>
+                <label class="admin-field"><span data-i18n="admin.priceA"></span><input name="seatPrice" type="number" min="0.01" step="0.01" value="55" required /></label>
+                <label class="admin-field"><span data-i18n="admin.priceStep"></span><input name="rowPriceStep" type="number" min="0" step="0.01" value="0" required /></label>
+                <p class="admin-seat-summary" id="adminSeatSummary"></p>
+              </div>
+            </div>
+            <div class="admin-form-footer">
+              <p id="adminFormStatus" role="status" aria-live="polite"></p>
+              <div>
+                <button class="ghost-btn" id="adminCancelEdit" type="button" data-i18n="admin.cancel"></button>
+                <button class="primary-btn" id="adminSaveEvent" type="submit" data-i18n="admin.create"></button>
+              </div>
+            </div>
+          </form>
+
+          <form class="admin-event-form hidden" id="adminImportForm">
+            <h3 data-i18n="admin.importTitle"></h3>
+            <div class="admin-form-grid">
+              <label class="admin-field"><span data-i18n="admin.keyword"></span><input name="keyword" maxlength="120" data-i18n-ph="admin.keywordPh" /></label>
+              <label class="admin-field"><span data-i18n="admin.country"></span><input name="countryCode" maxlength="2" data-i18n-ph="admin.countryPh" /></label>
+              <label class="admin-field"><span data-i18n="admin.city"></span><input name="city" maxlength="120" data-i18n-ph="admin.cityPh" /></label>
+              <label class="admin-field"><span data-i18n="admin.category"></span>
+                <select name="classificationName">
+                  <option value="" data-i18n="admin.any"></option>
+                  <option value="music">Music</option>
+                  <option value="sports">Sports</option>
+                  <option value="arts &amp; theatre">Arts &amp; Theatre</option>
+                  <option value="film">Film</option>
+                  <option value="miscellaneous">Miscellaneous</option>
+                </select>
+              </label>
+              <label class="admin-field"><span data-i18n="admin.order"></span>
+                <select name="sort">
+                  <option value="random" data-i18n="admin.sortRandom"></option>
+                  <option value="date,asc" data-i18n="admin.sortDate"></option>
+                </select>
+              </label>
+              <label class="admin-field"><span data-i18n="admin.size"></span><input name="size" type="number" min="1" max="100" step="1" value="20" /></label>
+              <label class="admin-field"><span data-i18n="admin.pages"></span><input name="pages" type="number" min="1" max="5" step="1" value="1" /></label>
+            </div>
+            <div class="admin-form-footer">
+              <p id="adminImportStatus" role="status" aria-live="polite"></p>
+              <div>
+                <button class="ghost-btn" id="adminImportCancel" type="button" data-i18n="admin.cancel"></button>
+                <button class="primary-btn" id="adminImportSubmit" type="submit" data-i18n="admin.importBtn"></button>
+              </div>
+            </div>
+          </form>
+
+          <div class="admin-event-list" id="adminEventList" aria-live="polite"></div>
+          <div class="ai-usage" id="aiUsage"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Auth (v16: каскад фич с --feat-i) -->
 <div class="modal hidden" id="authModal" aria-hidden="true">
   <div class="modal-backdrop" data-close="auth"></div>
   <div class="modal-panel auth-panel">
-    <button class="close-btn" data-close="auth" aria-label="Close">×</button>
-    <div class="auth-tabs">
-      <button class="auth-tab active" data-auth-view="login" type="button">Sign in</button>
-      <button class="auth-tab" data-auth-view="register" type="button">Register</button>
+    <div class="auth-grid">
+      <div class="auth-side">
+        <div class="brand-block light"><div class="brand-mark">P</div><span>PulsePass</span></div>
+        <h3 data-i18n="auth.sideTitle"></h3>
+        <p data-i18n="auth.sideText"></p>
+        <ul class="auth-features">
+          <li style="--feat-i:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg><span data-i18n="auth.f1"></span></li>
+          <li style="--feat-i:1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg><span data-i18n="auth.f2"></span></li>
+          <li style="--feat-i:2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg><span data-i18n="auth.f3"></span></li>
+        </ul>
+      </div>
+      <div class="auth-main">
+        <div class="auth-head-row">
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-auth-view="login" type="button" data-i18n="auth.signin"></button>
+            <button class="auth-tab" data-auth-view="register" type="button" data-i18n="auth.register"></button>
+          </div>
+          <button class="close-btn" data-close="auth" type="button" aria-label="Close" data-i18n-aria="common.close">×</button>
+        </div>
+        <form id="authForm" class="auth-form" novalidate>
+          <div class="auth-collapse" id="registerNameWrap">
+            <div class="auth-collapse-inner">
+              <div class="field-group" id="registerNameField">
+                <label for="registerName" data-i18n="auth.fullName"></label>
+                <input type="text" id="registerName" name="fullName" data-i18n-ph="auth.fullNamePh" autocomplete="name" />
+                <small class="field-err" id="nameErr" hidden></small>
+              </div>
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="authEmail" data-i18n="auth.email"></label>
+            <input type="email" id="authEmail" name="email" data-i18n-ph="auth.emailPh" autocomplete="email" required />
+            <small class="field-err" id="emailErr" hidden></small>
+          </div>
+          <div class="field-group">
+            <label for="authPassword" data-i18n="auth.password"></label>
+            <div class="pw-wrap">
+              <input type="password" id="authPassword" name="password" data-i18n-ph="auth.passwordPh" autocomplete="current-password" required />
+              <button type="button" class="pw-toggle" data-pw-toggle="authPassword" aria-label="Show password" data-i18n-aria="auth.showPw" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <small class="field-err" id="passErr" hidden></small>
+            <div class="pw-strength hidden" id="pwMeter">
+              <div class="pw-bar"><span id="pwBarFill"></span></div>
+              <small id="pwBarText"></small>
+            </div>
+          </div>
+          <div class="auth-collapse" id="registerConfirmWrap">
+            <div class="auth-collapse-inner">
+              <div class="field-group" id="registerConfirmField">
+                <label for="registerConfirm" data-i18n="auth.confirm"></label>
+                <div class="pw-wrap">
+                  <input type="password" id="registerConfirm" name="confirmPassword" data-i18n-ph="auth.passwordPh" autocomplete="new-password" />
+                  <button type="button" class="pw-toggle" data-pw-toggle="registerConfirm" aria-label="Show password" data-i18n-aria="auth.showPw" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+                <small class="field-err" id="confirmErr" hidden></small>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="primary-btn full-width" id="authSubmitBtn" data-i18n="auth.submitLogin"></button>
+          <a class="auth-forgot" href="#" data-stub data-i18n="auth.forgot"></a>
+        </form>
+        <p id="authStatus" class="auth-status"></p>
+        <div class="auth-divider"><span data-i18n="auth.or"></span></div>
+        <div class="social-row">
+          <button class="social-btn" type="button" data-stub>
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#fc3f1d"/><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Я</text></svg>
+            <span data-i18n="auth.yandex"></span>
+          </button>
+          <button class="social-btn" type="button" data-stub>
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#21a038"/><text x="12" y="16.5" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">С</text></svg>
+            <span data-i18n="auth.sber"></span>
+          </button>
+        </div>
+      </div>
     </div>
-    <form id="authForm" class="auth-form">
-      <div class="field-group hidden" id="registerNameField">
-        <label for="registerName">Full name</label>
-        <input type="text" id="registerName" name="fullName" placeholder="John Smith" />
-      </div>
-      <div class="field-group">
-        <label for="authEmail">Email</label>
-        <input type="email" id="authEmail" name="email" placeholder="you@example.com" required />
-      </div>
-      <div class="field-group">
-        <label for="authPassword">Password</label>
-        <input type="password" id="authPassword" name="password" placeholder="********" required />
-      </div>
-      <button type="submit" class="primary-btn full-width" id="authSubmitBtn">Sign in</button>
-    </form>
-    <p id="authStatus" class="auth-status"></p>
   </div>
 </div>
 
-<div class="modal hidden" id="profileModal" aria-hidden="true">
-  <div class="modal-backdrop" data-close="profile"></div>
-  <div class="modal-panel profile-panel">
-    <button class="close-btn" data-close="profile" aria-label="Close">×</button>
-    <div class="profile-header">
-      <div class="profile-avatar">P</div>
-      <div>
-        <span class="eyebrow dark">Profile</span>
-        <h3 id="profileName">User</h3>
-      </div>
-    </div>
-    <div class="profile-meta">
-      <div><span>Email</span><strong id="profileEmail">—</strong></div>
-      <div><span>Member since</span><strong id="profileSince">—</strong></div>
-    </div>
-    <div class="profile-orders-block">
-      <div class="profile-orders-header">
-        <h4>My orders</h4>
-        <button type="button" class="ghost-btn" id="profileLogoutBtn">Logout</button>
-      </div>
-      <div id="profileOrders" class="profile-orders"></div>
-    </div>
-  </div>
-</div>
-
+<!-- Event modal (v16: миниатюра вместо баннера) -->
 <div class="modal hidden" id="eventModal" aria-hidden="true">
   <div class="modal-backdrop" data-close="event"></div>
   <div class="modal-panel event-modal-panel">
-    <button class="close-btn" data-close="event" aria-label="Close">×</button>
-    <div class="event-modal-hero" id="modalHero"></div>
+    <button class="close-btn" data-close="event" type="button" aria-label="Close" data-i18n-aria="common.close">×</button>
     <div class="modal-body">
-      <div>
-        <span class="eyebrow dark" id="modalTag">Concert</span>
-        <h3 id="modalTitle">Event title</h3>
-        <p id="modalMeta">Venue • date</p>
-        <p id="modalDescription">Event description</p>
-        <a class="modal-source hidden" id="modalSource" target="_blank" rel="noopener noreferrer">Event details on Ticketmaster ↗</a>
+      <div class="modal-event-head">
+        <div class="modal-event-thumb" id="modalThumb" aria-hidden="true"></div>
+        <div class="modal-event-headtext">
+          <span class="modal-tag" id="modalTag">Live</span>
+          <h3 id="modalTitle"></h3>
+          <p class="modal-meta" id="modalMeta"></p>
+        </div>
+      </div>
+      <div class="modal-info">
+        <p class="modal-desc" id="modalDescription"></p>
+        <a class="modal-source hidden" id="modalSource" target="_blank" rel="noopener noreferrer" data-i18n="event.source"></a>
       </div>
       <div class="seat-picker-wrapper">
         <div class="seat-picker-header">
-          <strong>Select your seat</strong>
-          <span id="selectedSeatLabel">No seat selected</span>
+          <strong data-i18n="event.selectSeat"></strong>
+          <span id="selectedSeatLabel"></span>
         </div>
-        <div class="seat-stage">Stage</div>
+        <div class="seat-stage" data-i18n="event.stage"></div>
         <div id="seatMap" class="seat-map"></div>
       </div>
       <div class="modal-actions">
-        <button class="ghost-btn" data-close="event" type="button">Close</button>
-        <button class="primary-btn" id="buyTicketBtn" type="button">Buy ticket</button>
+        <button class="ghost-btn" data-close="event" type="button" data-i18n="event.close"></button>
+        <button class="primary-btn" id="buyTicketBtn" type="button" data-i18n="event.buy"></button>
       </div>
     </div>
   </div>
@@ -266,36 +458,49 @@
 <div class="modal hidden" id="paymentModal" aria-hidden="true">
   <div class="modal-backdrop" data-close="payment"></div>
   <div class="modal-panel payment-panel">
-    <button class="close-btn" data-close="payment" aria-label="Close">×</button>
-    <h3>Payment details</h3>
+    <button class="close-btn" data-close="payment" type="button" aria-label="Close" data-i18n-aria="common.close">×</button>
+    <h3 data-i18n="pay.title"></h3>
     <form id="paymentForm" class="payment-form">
       <div class="field-group">
-        <label>Cardholder name</label>
-        <input type="text" name="cardName" placeholder="John Smith" required />
+        <label data-i18n="pay.name"></label>
+        <input type="text" name="cardName" data-i18n-ph="pay.namePh" required />
       </div>
       <div class="field-group">
-        <label>Card number</label>
-        <input id="cardNumber" type="text" name="cardNumber" placeholder="4242 4242 4242 4242" maxlength="19" required />
+        <label data-i18n="pay.number"></label>
+        <input id="cardNumber" type="text" name="cardNumber" placeholder="4242 4242 4242 4242" maxlength="19" inputmode="numeric" required />
       </div>
       <div class="card-row">
         <div class="field-group">
-          <label>Expiry</label>
-          <input id="expiry" type="text" name="expiry" placeholder="MM/YY" maxlength="5" required />
+          <label data-i18n="pay.expiry"></label>
+          <input id="expiry" type="text" name="expiry" placeholder="MM/YY" maxlength="5" inputmode="numeric" required />
         </div>
         <div class="field-group">
-          <label>CVC</label>
-          <input id="cvc" type="text" name="cvc" placeholder="123" maxlength="4" required />
+          <label data-i18n="pay.cvc"></label>
+          <input id="cvc" type="text" name="cvc" placeholder="123" maxlength="4" inputmode="numeric" required />
         </div>
       </div>
       <div class="payment-summary">
-        <span>Selected ticket</span>
-        <strong id="paymentSummary">A12 • $0</strong>
+        <span data-i18n="pay.ticket"></span>
+        <strong id="paymentSummary"></strong>
       </div>
-      <button type="submit" class="primary-btn full-width">Pay now</button>
+      <button type="submit" class="primary-btn full-width" data-i18n="pay.pay"></button>
     </form>
   </div>
 </div>
 
-<script src="app.js?v=11"></script>
+<div class="modal hidden" id="returnConfirmModal" aria-hidden="true">
+  <div class="modal-backdrop" data-close="returnConfirm"></div>
+  <div class="modal-panel confirm-panel">
+    <button class="close-btn" data-close="returnConfirm" type="button" aria-label="Close" data-i18n-aria="common.close">×</button>
+    <h3 data-i18n="dash.confirmTitle"></h3>
+    <p class="confirm-body" id="rcBody">—</p>
+    <div class="modal-actions">
+      <button class="ghost-btn" type="button" data-close="returnConfirm" data-i18n="dash.confirmCancel"></button>
+      <button class="primary-btn" type="button" id="rcConfirmBtn" data-i18n="dash.return"></button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=17"></script>
 </body>
 </html>
