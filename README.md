@@ -79,4 +79,4 @@ flowchart LR
 - Spring Security, JWT на jjwt 0.11.5, HS256
 - JUnit 5, Mockito
 - Frontend: чистый HTML, CSS и JS без фреймворков, раздаётся через nginx
-- Docker Compose для инфраструктуры, один общий Dockerfile для сборки любого модуля
+- Docker Compose для инфраструктуры и сервисов, отдельный Dockerfile в каждом модуле

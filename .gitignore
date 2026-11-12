@@ -289,7 +289,6 @@ Carthage/Build/
 # Docker
 # ============================================
 docker-compose.override.yml
-.dockerignore
 
 # ============================================
 # Databases / Data
@@ -313,3 +312,5 @@ dump.rdb
 .eslintcache
 .tern-port
 .fuse_hidden*
+
+.openyak/
