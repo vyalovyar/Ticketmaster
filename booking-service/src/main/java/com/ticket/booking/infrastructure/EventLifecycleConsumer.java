@@ -40,7 +40,7 @@ public class EventLifecycleConsumer {
         this.refundProducer = refundProducer;
         this.ticketReturnProducer = ticketReturnProducer;
     }
-    //Обработка разных событий из кафки
+
     @KafkaListener(topics = {"ticketmaster.events"}, groupId = "booking-service-group")
     @Transactional
     public void listen(EventEnvelope envelope) {

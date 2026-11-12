@@ -16,6 +16,6 @@ public interface EventSeatRepository extends JpaRepository<EventSeat, UUID> {
     List<EventSeat> findAllByEventId(UUID eventId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @QueryHints(@QueryHint(name = "javax.persistence.lock.timeout", value = "2000"))
+    @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "2000"))
     Optional<EventSeat> findByEventIdAndSeatRowAndSeatNumber(UUID eventId, String seatRow, Integer seatNumber);
 }
