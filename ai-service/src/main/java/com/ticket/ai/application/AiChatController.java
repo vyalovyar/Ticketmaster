@@ -72,6 +72,17 @@ public class AiChatController {
     public Map<String, Object> health() {
         Map<String, Object> status = new LinkedHashMap<>();
         status.put("status", "ok");
+        status.put("configured", properties.isConfigured());
+        status.put("embeddingEnabled", embeddingProperties.isEnabled());
+        return status;
+    }
+
+    @GetMapping("/diagnostics")
+    public Map<String, Object> diagnostics(@RequestHeader(value = HEADER_USER_ROLE, required = false) String role) {
+        if (!"ADMIN".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Только администратор");
+        }
+        Map<String, Object> status = new LinkedHashMap<>();
         status.put("provider", properties.provider());
         status.put("model", properties.resolvedModel());
         status.put("intentModel", properties.resolvedIntentModel());

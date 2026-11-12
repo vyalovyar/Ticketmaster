@@ -1,5 +1,6 @@
 package com.ticket.ai.infrastructure;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticket.ai.application.EventIndexSyncService;
@@ -42,8 +43,13 @@ public class EventChangeConsumer {
                 case "EVENT_DELETED" -> syncService.deleteEvent(UUID.fromString(eventId));
                 default -> log.debug("Ignoring event type {}", eventType);
             }
-        } catch (Exception e) {
-            log.error("Could not process event from Kafka: {}", e.getMessage(), e);
+        } catch (JsonProcessingException e) {
+            log.warn("Skipping unreadable event from Kafka: {}", record.value(), e);
+        } catch (IllegalArgumentException e) {
+            log.warn("Skipping malformed event from Kafka: {}", record.value(), e);
+        } catch (RuntimeException e) {
+            log.error("Could not process event from Kafka, retrying: {}", e.getMessage(), e);
+            throw e;
         }
     }
 }

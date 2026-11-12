@@ -3,7 +3,9 @@ package com.ticket.event.application;
 import com.ticket.event.domain.Event;
 import com.ticket.event.domain.Seat;
 import com.ticket.event.infrastructure.EventRepository;
+import com.ticket.exception.BusinessException;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +17,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,14 +51,32 @@ public class EventController {
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String date
     ) {
-        List<EventResponse> events = eventRepository.findAllActive().stream()
-                .filter(event -> artist == null || artist.isBlank() || event.getArtist().toLowerCase().contains(artist.toLowerCase()))
-                .filter(event -> location == null || location.isBlank() || event.getLocation().toLowerCase().contains(location.toLowerCase()))
-                .filter(event -> date == null || date.isBlank() || event.getEventDate().toLocalDate().toString().equals(date))
+        LocalDateTime dateFrom = null;
+        LocalDateTime dateTo = null;
+        if (date != null && !date.isBlank()) {
+            try {
+                LocalDate parsed = LocalDate.parse(date.trim());
+                dateFrom = parsed.atStartOfDay();
+                dateTo = parsed.plusDays(1).atStartOfDay();
+            } catch (DateTimeParseException ex) {
+                throw new BusinessException("Некорректная дата", HttpStatus.BAD_REQUEST, "INVALID_DATE");
+            }
+        }
+
+        List<EventResponse> events = eventRepository.findUpcomingFiltered(
+                        LocalDateTime.now(),
+                        blankToNull(artist),
+                        blankToNull(location),
+                        dateFrom,
+                        dateTo).stream()
                 .map(this::toResponse)
                 .toList();
 
         return ResponseEntity.ok(events);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     @GetMapping("/{id}")
@@ -74,10 +96,6 @@ public class EventController {
         return ResponseEntity.ok(eventId);
     }
 
-    /**
-     * Догружает country/city/venue/genres для старых событий по external_id.
-     * Доступно только ADMIN (проверяется на gateway).
-     */
     @PostMapping("/backfill-metadata")
     public ResponseEntity<TicketmasterMetadataBackfillService.BackfillResult> backfillMetadata(
             @RequestParam(defaultValue = "50") int limit) {

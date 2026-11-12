@@ -164,7 +164,6 @@ public class TicketmasterImportService {
                         .atZoneSameInstant(ZoneId.systemDefault())
                         .toLocalDateTime());
             } catch (DateTimeParseException ignored) {
-                // ниже используем localDate/localTime площадки
             }
         }
 
@@ -196,7 +195,6 @@ public class TicketmasterImportService {
             try {
                 return OffsetDateTime.parse(dateTime).toInstant().isAfter(Instant.now());
             } catch (DateTimeParseException ignored) {
-                // fallback — сравнение уже приведённого к зоне сервера времени
             }
         }
         return eventDate.isAfter(LocalDateTime.now());
@@ -338,10 +336,6 @@ public class TicketmasterImportService {
         return seats;
     }
 
-    /**
-     * Если Ticketmaster не отдал цены, берём стабильную «случайную» цену по id события,
-     * чтобы в каталоге не было одинаковых $49 у всех подряд.
-     */
     private double defaultBasePrice(TicketmasterEvent event) {
         int hash = Math.floorMod(java.util.Objects.hashCode(event.id()), 61);
         return 29 + hash;

@@ -42,9 +42,6 @@ public record TicketmasterEvent(
         return Optional.ofNullable(priceRanges.get(0));
     }
 
-    /**
-     * Самая крупная картинка события (для карточки/баннера).
-     */
     public Optional<String> bestImageUrl() {
         if (images == null || images.isEmpty()) {
             return Optional.empty();

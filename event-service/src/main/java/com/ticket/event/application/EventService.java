@@ -122,7 +122,7 @@ public class EventService {
         kafkaProducer.publishEventUpdated(new EventUpdatedEvent(event.getId(), LocalDateTime.now()));
         return event.getId();
     }
-//Тут хибер неявно сравнивает сущность и бд и сам генерит запрос(можно явно написать eventRepository.save(event))
+
     @Transactional
     public UUID deleteEvent(UUID idEvent){
         Event event = eventRepository.findByIdAndDeletedAtIsNull(idEvent)
