@@ -29,9 +29,6 @@ public class RateLimitService {
                     }
                     return Mono.just(count);
                 })
-                .map(count -> {
-                    System.out.println(" Key: " + key + ", Count: " + count);
-                    return count != null && count <= LIMIT;
-                });
+                .map(count -> count != null && count <= LIMIT);
     }
 }

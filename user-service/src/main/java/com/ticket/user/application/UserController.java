@@ -123,10 +123,6 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * ВРЕМЕННО: заказ пишет клиент, но хотя бы строго для себя.
-     * Правильное решение: создавать заказ в user-service по событию PaymentSucceeded.
-     */
     @PostMapping("/orders")
     public ResponseEntity<Map<String, Object>> addOrder(
             @RequestHeader(HEADER_USER_ID) String requesterId,
@@ -156,7 +152,6 @@ public class UserController {
             @RequestHeader("Authorization") String authorizationHeader,
             @RequestBody ChangeRoleRequest request
     ) {
-        // Критичная операция: токен проверяем ещё раз прямо в сервисе (defense in depth)
         String token = authorizationHeader.replaceFirst("(?i)^Bearer ", "");
         Optional<TokenPrincipal> principal = jwtService.parseAccessToken(token);
 

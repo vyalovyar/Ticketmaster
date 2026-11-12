@@ -62,6 +62,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
 
             new Rule(Set.of(HttpMethod.GET), "/api/ai/stats", Access.ADMIN),
+            new Rule(Set.of(HttpMethod.GET), "/api/ai/diagnostics", Access.ADMIN),
             new Rule(Set.of(), "/api/events/**", Access.ADMIN),
             new Rule(Set.of(), "/api/analytics/**", Access.ADMIN),
             new Rule(Set.of(HttpMethod.PUT), "/api/users/*/role", Access.ADMIN)
