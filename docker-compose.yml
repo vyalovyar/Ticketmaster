@@ -289,7 +289,8 @@ services:
     environment:
       GATEWAY_HOST: gateway-service
       GATEWAY_PORT: 8080
-      NGINX_ENVSUBST_FILTER: "^(GATEWAY_HOST|GATEWAY_PORT)$"
+      NGINX_RESOLVER: 127.0.0.11
+      NGINX_ENVSUBST_FILTER: "^(GATEWAY_HOST|GATEWAY_PORT|NGINX_RESOLVER)$"
     volumes:
       - ./frontend:/usr/share/nginx/html:ro
       - ./frontend/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
