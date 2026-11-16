@@ -18,10 +18,12 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
             left join fetch e.seats
             where e.deletedAt is null
               and e.eventDate >= :from
-              and (:artist is null or lower(e.artist) like lower(concat('%', :artist, '%')))
-              and (:location is null or lower(e.location) like lower(concat('%', :location, '%')))
-              and (:dateFrom is null or e.eventDate >= :dateFrom)
-              and (:dateTo is null or e.eventDate < :dateTo)
+              and (cast(:artist as string) is null
+                   or lower(e.artist) like lower(concat('%', cast(:artist as string), '%')))
+              and (cast(:location as string) is null
+                   or lower(e.location) like lower(concat('%', cast(:location as string), '%')))
+              and e.eventDate >= :dateFrom
+              and e.eventDate < :dateTo
             order by e.eventDate asc
             """)
     List<Event> findUpcomingFiltered(
@@ -39,7 +41,13 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 
     Optional<Event> findByExternalId(String externalId);
 
-    @Query("select e from Event e where e.deletedAt is null and e.externalId is not null and e.countryCode is null order by e.eventDate asc")
+    @Query("""
+            select e from Event e
+            where e.deletedAt is null
+              and e.externalId is not null
+              and e.countryCode is null
+            order by e.eventDate asc
+            """)
     List<Event> findMissingMetadata(Pageable pageable);
 
     long countByDeletedAtIsNullAndExternalIdIsNotNullAndCountryCodeIsNull();

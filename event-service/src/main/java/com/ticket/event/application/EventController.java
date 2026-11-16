@@ -40,10 +40,20 @@ public class EventController {
         this.backfillService = backfillService;
     }
 
-    public record EventResponse(UUID id, String name, String artist, String location, LocalDateTime eventDate,
-                                String description, String imageUrl, String sourceUrl,
-                                String countryCode, String city, String venueName, List<String> genres,
-                                List<Seat> seats) {}
+    public record EventResponse(
+            UUID id,
+            String name,
+            String artist,
+            String location,
+            LocalDateTime eventDate,
+            String description,
+            String imageUrl,
+            String sourceUrl,
+            String countryCode,
+            String city,
+            String venueName,
+            List<String> genres,
+            List<Seat> seats) {}
 
     @GetMapping
     public ResponseEntity<List<EventResponse>> getAllEvents(
@@ -51,15 +61,20 @@ public class EventController {
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String date
     ) {
-        LocalDateTime dateFrom = null;
-        LocalDateTime dateTo = null;
+        LocalDateTime dateFrom = LocalDateTime.of(1, 1, 1, 0, 0);
+        LocalDateTime dateTo = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
+
         if (date != null && !date.isBlank()) {
             try {
                 LocalDate parsed = LocalDate.parse(date.trim());
                 dateFrom = parsed.atStartOfDay();
                 dateTo = parsed.plusDays(1).atStartOfDay();
             } catch (DateTimeParseException ex) {
-                throw new BusinessException("Некорректная дата", HttpStatus.BAD_REQUEST, "INVALID_DATE");
+                throw new BusinessException(
+                        "Некорректная дата",
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_DATE"
+                );
             }
         }
 
